@@ -1,6 +1,6 @@
 Name:       syspopup
 Summary:    syspopup package
-Version:    0.0.93
+Version:    0.0.94
 Release:    1
 Group:      System/Libraries
 License:    Apache License, Version 2.0
@@ -47,6 +47,13 @@ Requires:   %{name} = %{version}-%{release}
 %description caller-devel
 syspopup-caller development package for popup
 
+%package app
+Summary:    org.tizen.syspopup-app test app
+Group:      TO_BE/FILLED_IN
+Requires:   %{name} = %{version}-%{release}
+
+%description app
+org.tizen.syspopup-app test app package
 
 %prep
 %setup -q
@@ -76,16 +83,11 @@ touch %{buildroot}%{_datadir}/popup_noti_term
 %files
 %manifest syspopup.manifest
 %defattr(-,root,root,-)
-%{_datadir}/icons/default/small/org.tizen.syspopup-app.png
-%{_bindir}/sp_test
-%{_bindir}/syspopup-app
 %{_libdir}/libsyspopup.so.0.1.0
-/usr/share/packages/org.tizen.syspopup-app.xml
 %{_datadir}/popup_noti_term
-
 %attr(644,root,app) /opt/dbspace/.syspopup.db
 %attr(644,root,app) /opt/dbspace/.syspopup.db-journal
-
+%{_bindir}/sp_test
 
 %files devel
 %defattr(-,root,root,-)
@@ -104,6 +106,13 @@ touch %{buildroot}%{_datadir}/popup_noti_term
 %{_libdir}/libsyspopup_caller.so
 %{_includedir}/syspopup_caller.h
 %{_libdir}/pkgconfig/syspopup-caller.pc
+
+%files app
+%manifest org.tizen.syspopup-app.manifest
+%defattr(-,root,root,-)
+%{_datadir}/icons/default/small/org.tizen.syspopup-app.png
+%{_bindir}/syspopup-app
+/usr/share/packages/org.tizen.syspopup-app.xml
 
 %changelog
 * Fri Apr 12 2013 - Hyungdeuk Kim <hd3.kim@samsung.com>
