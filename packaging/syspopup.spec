@@ -1,6 +1,6 @@
 Name:       syspopup
 Summary:    syspopup package
-Version:    0.0.94
+Version:    0.0.95
 Release:    1
 Group:      System/Libraries
 License:    Apache License, Version 2.0
@@ -115,6 +115,9 @@ touch %{buildroot}%{_datadir}/popup_noti_term
 /usr/share/packages/org.tizen.syspopup-app.xml
 
 %changelog
+* Fri Jun 21 2013 - Hyungdeuk Kim <hd3.kim@samsung.com>
+- Change end key term info of wifi-qs
+
 * Fri Apr 12 2013 - Hyungdeuk Kim <hd3.kim@samsung.com>
 - Remove drm syspopup requested by hakjoo.ko
 
