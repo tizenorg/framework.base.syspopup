@@ -264,6 +264,7 @@ int X_syspopup_process_keydown(int id, const char *keyname)
 	return 0;
 }
 
+#ifdef ROTATE_USING_X_CLIENT
 int X_syspopup_process_rotate(int id)
 {
 	Display *d;
@@ -283,6 +284,7 @@ int X_syspopup_process_rotate(int id)
 
 	return 0;
 }
+#endif
 
 int X_make_syspopup(bundle *b, Display *dpy, Window xwin, void *win,
 		    int (*rotate_func) (Display*, Window, syspopup*),
