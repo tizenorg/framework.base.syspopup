@@ -1,6 +1,6 @@
 Name:       syspopup
 Summary:    syspopup package
-Version:    0.0.96
+Version:    0.0.97
 Release:    1
 Group:      System/Libraries
 License:    Apache License, Version 2.0
