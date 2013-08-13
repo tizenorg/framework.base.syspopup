@@ -1,6 +1,6 @@
 Name:       syspopup
 Summary:    syspopup package
-Version:    0.0.98
+Version:    0.0.99
 Release:    1
 Group:      System/Libraries
 License:    Apache License, Version 2.0
@@ -115,6 +115,9 @@ touch %{buildroot}%{_datadir}/popup_noti_term
 /usr/share/packages/org.tizen.syspopup-app.xml
 
 %changelog
+* Tue Aug 13 2013 - Hyungdeuk Kim <hd3.kim@samsung.com>
+- Add key handler for esc of keyboard
+
 * Fri Jun 21 2013 - Hyungdeuk Kim <hd3.kim@samsung.com>
 - Change end key term info of wifi-qs
 
