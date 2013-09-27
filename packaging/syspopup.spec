@@ -1,6 +1,6 @@
 Name:       syspopup
 Summary:    syspopup package
-Version:    0.0.99
+Version:    0.0.100
 Release:    1
 Group:      System/Libraries
 License:    Apache License, Version 2.0
@@ -65,6 +65,8 @@ make %{?jobs:-j%jobs}
 
 %install
 %make_install
+mkdir -p %{buildroot}/usr/share/license
+install LICENSE %{buildroot}/usr/share/license/%{name}
 
 mkdir -p %{buildroot}/opt/dbspace
 sqlite3 %{buildroot}/opt/dbspace/.syspopup.db < %{buildroot}/usr/share/syspopup/syspopup_db.sql
@@ -88,6 +90,7 @@ touch %{buildroot}%{_datadir}/popup_noti_term
 %attr(644,root,app) /opt/dbspace/.syspopup.db
 %attr(644,root,app) /opt/dbspace/.syspopup.db-journal
 %{_bindir}/sp_test
+/usr/share/license/%{name}
 
 %files devel
 %defattr(-,root,root,-)
