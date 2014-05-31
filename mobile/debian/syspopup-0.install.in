@@ -1,0 +1,4 @@
+@PREFIX@/lib/libsyspopup.*
+@PREFIX@/bin/*
+usr/share/popup_noti_term
+@PREFIX@/share/*
