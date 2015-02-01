@@ -1,0 +1,12 @@
+<manifest>
+        <define>
+                <domain name="org.tizen.syspopup-app" />
+        </define>
+        <request>
+                <domain name="org.tizen.syspopup-app" />
+        </request>
+        <assign>
+                <filesystem path="/usr/bin/syspopup-app" exec_label="org.tizen.syspopup-app" />
+        </assign>
+</manifest>
+

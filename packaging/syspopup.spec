@@ -1,6 +1,7 @@
+
 Name:       syspopup
 Summary:    syspopup package
-Version:    0.0.122
+Version:    0.0.134
 Release:    1
 Group:      System/Libraries
 License:    Apache License, Version 2.0
@@ -18,6 +19,7 @@ BuildRequires:  pkgconfig(x11)
 BuildRequires:  pkgconfig(aul)
 BuildRequires:  pkgconfig(evas)
 BuildRequires:  pkgconfig(appcore-efl)
+BuildRequires:  pkgconfig(capi-appfw-application)
 
 %description
 syspopup package for popup
@@ -48,7 +50,6 @@ Requires:   %{name} = %{version}-%{release}
 %description caller-devel
 syspopup-caller development package for popup
 
-%if 0%{?tizen_profile_mobile}
 %package app
 Summary:    org.tizen.syspopup-app test app
 Group:      TO_BE/FILLED_IN
@@ -56,62 +57,41 @@ Requires:   %{name} = %{version}-%{release}
 
 %description app
 org.tizen.syspopup-app test app package
-%endif
 
 %prep
 %setup -q -n %{name}-%{version}
 
 %build
-%if 0%{?tizen_profile_wearable}
-%if 0%{?tizen_build_binary_release_type_eng}
-export CFLAGS="$CFLAGS -DTIZEN_ENGINEER_MODE"
-export CXXFLAGS="$CXXFLAGS -DTIZEN_ENGINEER_MODE"
-export FFLAGS="$FFLAGS -DTIZEN_ENGINEER_MODE"
-%endif
-cd wearable
-export CFLAGS="$CFLAGS -Wall -Werror -Wno-unused-function"
-CFLAGS=${_cflags} cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DEXTRA_CFLAGS=-fPIC
-
-make %{?jobs:-j%jobs}
-
+%if "%{?tizen_profile_name}" == "wearable"
+export CFLAGS="$CFLAGS –D_WEARABLE"
 %else
-cd mobile
-%cmake . -DEXTRA_CFLAGS=-fPIC
+export CFLAGS="$CFLAGS -D_MOBILE"
+%endif
+
+%if 0%{?sec_build_binary_debug_enable}
+export CFLAGS="$CFLAGS -DTIZEN_DEBUG_ENABLE"
+export CXXFLAGS="$CXXFLAGS -DTIZEN_DEBUG_ENABLE"
+export FFLAGS="$FFLAGS -DTIZEN_DEBUG_ENABLE"
+%endif
+export CFLAGS="$CFLAGS -Wall -Werror -Wno-unused-function"
+CFLAGS=${_cflags} cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DEXTRA_CFLAGS=-fPIC \
+	-D_WEARABLE:BOOL=${_WEARABLE} -D_MOBILE:BOOL=${_MOBILE} \
+	.
 
 make %{?jobs:-j%jobs}
-%endif
+
 %install
-%if 0%{?tizen_profile_wearable}
 rm -rf %{buildroot}
-cd wearable
 %make_install
 
 mkdir -p %{buildroot}/opt/dbspace
 sqlite3 %{buildroot}/opt/dbspace/.syspopup.db < %{buildroot}/usr/share/syspopup/syspopup_db.sql
 rm -rf %{buildroot}/usr/share/syspopup/syspopup_db.sql
-
-touch %{buildroot}%{_datadir}/popup_noti_term
 
 mkdir -p %{buildroot}/usr/share/license
 cp LICENSE %{buildroot}/usr/share/license/%{name}
 cp LICENSE %{buildroot}/usr/share/license/%{name}-caller
-%else
-rm -rf %{buildroot}
-cd mobile
-%make_install
-mkdir -p %{buildroot}/usr/share/license
-install LICENSE %{buildroot}/usr/share/license/%{name}
-install LICENSE %{buildroot}/usr/share/license/%{name}-devel
-install LICENSE %{buildroot}/usr/share/license/%{name}-caller
-install LICENSE %{buildroot}/usr/share/license/%{name}-caller-devel
-install LICENSE %{buildroot}/usr/share/license/%{name}-app
 
-mkdir -p %{buildroot}/opt/dbspace
-sqlite3 %{buildroot}/opt/dbspace/.syspopup.db < %{buildroot}/usr/share/syspopup/syspopup_db.sql
-rm -rf %{buildroot}/usr/share/syspopup/syspopup_db.sql
-
-touch %{buildroot}%{_datadir}/popup_noti_term
-%endif
 %post
 /sbin/ldconfig
 
@@ -122,14 +102,9 @@ touch %{buildroot}%{_datadir}/popup_noti_term
 %postun caller -p /sbin/ldconfig
 
 %files
-%if 0%{?tizen_profile_mobile}
-%manifest mobile/syspopup.manifest
-%else
-%manifest wearable/syspopup.manifest
-%endif
+%manifest syspopup.manifest
 %defattr(-,root,root,-)
 %{_libdir}/libsyspopup.so.0.1.0
-%{_datadir}/popup_noti_term
 %attr(644,root,app) /opt/dbspace/.syspopup.db
 %attr(644,root,app) /opt/dbspace/.syspopup.db-journal
 %{_bindir}/sp_test
@@ -141,16 +116,9 @@ touch %{buildroot}%{_datadir}/popup_noti_term
 %{_includedir}/syspopup.h
 %{_libdir}/libsyspopup.so
 %{_libdir}/pkgconfig/syspopup.pc
-%if 0%{?tizen_profile_mobile}
-/usr/share/license/%{name}-devel
-%endif
 
 %files caller
-%if 0%{?tizen_profile_mobile}
-%manifest mobile/syspopup-caller.manifest
-%else
-%manifest wearable/syspopup-caller.manifest
-%endif
+%manifest syspopup-caller.manifest
 %defattr(-,root,root,-)
 %{_libdir}/libsyspopup_caller.so.0.1.0
 /usr/share/license/%{name}-caller
@@ -160,19 +128,44 @@ touch %{buildroot}%{_datadir}/popup_noti_term
 %{_libdir}/libsyspopup_caller.so
 %{_includedir}/syspopup_caller.h
 %{_libdir}/pkgconfig/syspopup-caller.pc
-%if 0%{?tizen_profile_mobile}
-/usr/share/license/%{name}-caller-devel
 
 %files app
-%manifest mobile/org.tizen.syspopup-app.manifest
+%manifest org.tizen.syspopup-app.manifest
 %defattr(-,root,root,-)
 %{_datadir}/icons/default/small/org.tizen.syspopup-app.png
 %{_bindir}/syspopup-app
 /usr/share/packages/org.tizen.syspopup-app.xml
-/usr/share/license/%{name}-app
-%endif
+/etc/smack/accesses2.d/org.tizen.syspopup-app.rule
 
 %changelog
+* Fri Aug 1 2014 - Hyungdeuk Kim <hd3.kim@samsung.com>
+- Change focus info of safetysyspopup
+- Requested by nannan.wu , parkjg
+
+* Thu May 22 2014 - Hyungdeuk Kim <hd3.kim@samsung.com>
+- Change timeout info of wc syspopup
+- Requested by sunil85.kim
+
+* Thu May 22 2014 - Hyungdeuk Kim <hd3.kim@samsung.com>
+- Change focus info of mode syspopup
+- Requested by setting
+
+* Mon May 19 2014 - Hyungdeuk Kim <hd3.kim@samsung.com>
+- Add root detection popup
+- Requested by daehoon ko of security r&d group
+
+* Mon May 12 2014 - Hyungdeuk Kim <hd3.kim@samsung.com>
+- Add setting noti popup for blocking mode
+
+* Thu May 8 2014 - Hyungdeuk Kim <hd3.kim@samsung.com>
+- Remove code to grab back key for volume popup
+
+* Mon Apr 28 2014 - Hyungdeuk Kim <hd3.kim@samsung.com>
+- Add wc syspopup requested by ms0123.kim of telephony team
+
+* Mon Mar 31 2014 - Hyungdeuk Kim <hd3.kim@samsung.com>
+- Enable telephony syspopup following telephony build feature
+
 * Tue Feb 18 2014 - Hyungdeuk Kim <hd3.kim@samsung.com>
 - Remove unused system popup sample app
 - Remove unused debian folder
@@ -180,6 +173,22 @@ touch %{buildroot}%{_datadir}/popup_noti_term
 * Wed Jan 15 2014 - Hyungdeuk Kim <hd3.kim@samsung.com>
 - Add fota syspopup
 - Requested by seokey.jeong
+
+* Tue Dec 10 2013 - Hyungdeuk Kim <hd3.kim@samsung.com>
+- Add fota-noti popup
+- Requested by juhaki.park
+
+* Wed Oct 23 2013 - Hyungdeuk Kim <hd3.kim@samsung.com>
+- Add fus-ode-syspopup
+- Requested by sunbong.ha
+
+* Fri Oct 18 2013 - Hyungdeuk Kim <hd3.kim@samsung.com>
+- Add keepit screen capture system popup
+- Requested by wc0917.lee
+
+* Thu Oct 10 2013 - Hyungdeuk Kim <hd3.kim@samsung.com>
+- Add mode system popup
+- Requested by shy81.shin
 
 * Fri Sep 13 2013 - Hyungdeuk Kim <hd3.kim@samsung.com>
 - Add crash system popup
