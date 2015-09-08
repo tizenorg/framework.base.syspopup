@@ -22,7 +22,7 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR})
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/syspopup)
 
 INCLUDE(FindPkgConfig)
-pkg_check_modules(syspopup_app_pkgs REQUIRED appcore-efl)
+pkg_check_modules(syspopup_app_pkgs REQUIRED appcore-efl capi-appfw-application)
 
 FOREACH(flag ${syspopup_app_pkgs_CFLAGS})
 	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
@@ -49,7 +49,7 @@ ADD_DEFINITIONS("-DEDJDIR=\"${EDJDIR}\"")
 SET(CMAKE_EXE_LINKER_FLAGS "-Wl,--as-needed")
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SRCS})
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} syspopup ${syspopup_app_pkgs_LDFLAGS})
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} "-pie" syspopup ${syspopup_app_pkgs_LDFLAGS})
 
 INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${BINDIR})
 
@@ -58,6 +58,9 @@ INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${BINDIR})
 CONFIGURE_FILE(${PKGNAME}.xml.in ${CMAKE_BINARY_DIR}/${PKGNAME}.xml)
 INSTALL(FILES ${CMAKE_BINARY_DIR}/${PKGNAME}.xml DESTINATION /usr/share/packages)
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/syspopup-app/${PKGNAME}.png DESTINATION share/icons/default/small)
+
+# install smack rule
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/${PKGNAME}.rule DESTINATION /etc/smack/accesses2.d)
 
 # i18n
 #ADD_SUBDIRECTORY(po)

@@ -1,0 +1,17 @@
+#default rule
+org.tizen.syspopup-app system::homedir rwxat
+org.tizen.syspopup-app system::vconf rwxat
+org.tizen.syspopup-app system::media rwxat
+org.tizen.syspopup-app system::share rwxat
+$1 pulseaudio rwxat
+e17  $1 w
+$1 sys-assert::core rwxat
+
+#app rule
+org.tizen.syspopup-app system::app_logging w
+org.tizen.syspopup-app system::use_internet r
+org.tizen.syspopup-app xorg rw
+org.tizen.syspopup-app isf rx
+org.tizen.syspopup-app ail::db rw
+org.tizen.syspopup-app syspopup::db rw
+org.tizen.syspopup-app dbus w

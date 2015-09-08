@@ -30,17 +30,6 @@
 #include <Ecore_Input.h>
 #include <Ecore_X.h>
 
-static void __elm_popupwin_del_cb(void *data, Evas * e, Evas_Object * obj,
-				  void *event_info)
-{
-	int id;
-
-	id = (int)data;
-	_D("callback del called, destroy internal data - id = %d\n", id);
-
-	_syspopup_del(id);
-}
-
 static Eina_Bool __x_keydown_cb(void *data, int type, void *event)
 {
 	int id = (int)data;
@@ -54,6 +43,7 @@ static Eina_Bool __x_keydown_cb(void *data, int type, void *event)
 	return ECORE_CALLBACK_DONE;
 }
 
+#ifdef ROTATE_USING_X_CLIENT
 static Eina_Bool __x_rotate_cb(void *data, int type, void *event)
 {
 	int id = (int)data;
@@ -83,6 +73,12 @@ static int __efl_rotate(Display *dpy, Window win, syspopup *sp)
 
 	return 0;
 }
+#else
+static int __efl_rotate(Display *dpy, Window win, syspopup *sp)
+{
+	return 0;
+}
+#endif
 
 API int syspopup_create(bundle *b, syspopup_handler *handler,
 			Evas_Object *parent, void *user_data)
@@ -116,7 +112,7 @@ API int syspopup_create(bundle *b, syspopup_handler *handler,
 
 		id = X_make_syspopup(b, dpy, xwin, parent, __efl_rotate,
 				     handler, user_data);
-		if (id < 0) {	
+		if (id < 0) {
 			_E("fail to make X syspopup");
 			return -1;
 		}
@@ -124,15 +120,12 @@ API int syspopup_create(bundle *b, syspopup_handler *handler,
 		ecore_event_handler_add(ECORE_EVENT_KEY_DOWN, __x_keydown_cb,
 					(void *)id);
 
-		evas_object_event_callback_add(parent, EVAS_CALLBACK_DEL,
-					 __elm_popupwin_del_cb, (void *)id);
-
 		/* X_syspopup_core should process 2 events */
 		/* First, rotate event */
 		/* Second, keydown event */
-		ecore_event_handler_add(ECORE_X_EVENT_CLIENT_MESSAGE,
-					__x_rotate_cb, (void *)id);
-
+#ifdef ROTATE_USING_X_CLIENT
+		ecore_event_handler_add(ECORE_X_EVENT_CLIENT_MESSAGE,__x_rotate_cb, (void *)id);
+#endif
 	}
 
 	return 0;

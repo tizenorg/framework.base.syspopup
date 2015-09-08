@@ -29,7 +29,6 @@
 #include "syspopup_db.h"
 
 #define SYSPOPUP_DEFAULT_TIMEOUT 20	/* sec */
-#define SYSPOPUP_TERM_NOTI_PATH  "/usr/share/popup_noti_term"
 
 struct _syspopup {
 	int id;

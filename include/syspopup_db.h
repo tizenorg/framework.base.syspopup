@@ -53,7 +53,6 @@ struct _syspopup_info_t {
 
 typedef struct _syspopup_info_t syspopup_info_t;
 
-int _syspopup_info_add(syspopup_info_t *pinfo);
 syspopup_info_t *_syspopup_info_get(const char *popup_name);
 void _syspopup_info_free(syspopup_info_t *pinfo);
 

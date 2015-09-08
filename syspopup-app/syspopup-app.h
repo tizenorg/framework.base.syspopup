@@ -24,30 +24,20 @@
 #ifndef __SYSPOPUP_APP_H__
 #define __SYSPOPUP_APP_H__
 
+#include <app.h>
 #include <Elementary.h>
 
+#ifdef  LOG_TAG
+#undef  LOG_TAG
+#endif
+#define LOG_TAG "syspopup-app"
+
 #if !defined(PACKAGE)
-#  define PACKAGE "syspopup-app"
+#define PACKAGE "syspopup-app"
 #endif
 
-#define NAME_BUF_LEN	256
 #define TITLE_BUF_LEN	256
 #define CONTENT_BUF_LEN	256
-
-#define QP_BUF_LEN	10
-#define QP_PRIVID 1
-#define QP_TERM	1
-#define QP_TIMEOUT	1
-
-struct appdata {
-	Evas_Object *win;
-	Evas_Object *popup;
-	bundle *b;
-	char title[TITLE_BUF_LEN];
-	char content[CONTENT_BUF_LEN];
-
-	/* add more variables here */
-};
 
 #endif				/* __SYSPOPUP_APP_H__ */
 

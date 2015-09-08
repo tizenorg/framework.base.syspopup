@@ -28,6 +28,8 @@
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 
+#define WIN_PROP_NAME "SYSTEM_POPUP"
+
 static int __utilx_ss_get_window_property(Display *dpy, Window win, Atom atom,
 					  Atom type, unsigned int *val,
 					  unsigned int len)
@@ -89,41 +91,47 @@ static Window get_active_win(Display *dpy, Window win, Atom property)
 static void __X_syspopup_term_handler(void *data)
 {
 	syspopup *tmp;
-	Display *d;
+	syspopup *next;
+	Display *d = NULL;
 	Window win;
 
-	_D("enter syspopup term handler");
+	_I("enter syspopup term handler");
 
 	d = XOpenDisplay(NULL);
-	tmp = _syspopup_get_head();
-	while (tmp) {
-		switch (tmp->term_act) {
-		case SYSPOPUP_TERM:
-			if (tmp->def_term_fn != NULL)
-				tmp->def_term_fn(tmp->dupped_bundle,
-						 tmp->user_data);
-
-			win = (Window) tmp->internal_data;
-			XKillClient(d, win);
-			/*XDestroyWindow(d, win);*/ 
-			/* TODO :modify for multi popup */
-			break;
-		case SYSPOPUP_HIDE:
-			if (tmp->def_term_fn != NULL)
-				tmp->def_term_fn(tmp->dupped_bundle,
-						 tmp->user_data);
-
-			win = (Window) tmp->internal_data;
-			XUnmapWindow(d, win);
-			break;
-		default:
-			_D("term action IGNORED - %s", tmp->name);
-		}
-		tmp = tmp->next;
+	if(!d){
+		_E("XOpenDisplay return null");
 	}
 
-	XCloseDisplay(d);
-	/*TODO : if there is no popup window, kill client*/
+	tmp = _syspopup_get_head();
+	while (tmp) {
+
+		_I("term action %d - %s", tmp->term_act, tmp->name);
+		next = tmp->next;
+
+		switch (tmp->term_act) {
+		case SYSPOPUP_TERM:
+			win = (Window) tmp->internal_data;
+
+			if (tmp->def_term_fn != NULL)
+				tmp->def_term_fn(tmp->dupped_bundle, tmp->user_data);
+
+			if(d) XKillClient(d, win);
+			break;
+		case SYSPOPUP_HIDE:
+			win = (Window) tmp->internal_data;
+
+			if (tmp->def_term_fn != NULL)
+				tmp->def_term_fn(tmp->dupped_bundle, tmp->user_data);
+
+			if(d) XUnmapWindow(d, win);
+			break;
+		default:
+			_I("term action IGNORED - %s", tmp->name);
+		}
+		tmp = next;
+	}
+
+	if(d) XCloseDisplay(d);
 }
 
 static gboolean __X_syspopup_timeout_handler(void *user_data)
@@ -259,6 +267,7 @@ int X_syspopup_process_keydown(int id, const char *keyname)
 	return 0;
 }
 
+#ifdef ROTATE_USING_X_CLIENT
 int X_syspopup_process_rotate(int id)
 {
 	Display *d;
@@ -278,6 +287,18 @@ int X_syspopup_process_rotate(int id)
 
 	return 0;
 }
+#else
+static void __efl_rotation_set(Evas_Object* win, Ecore_X_Window xwin)
+{
+	ecore_x_icccm_name_class_set(xwin, WIN_PROP_NAME, WIN_PROP_NAME);
+	if (elm_win_wm_rotation_supported_get(win)) {
+		int rots[4] = { 0, 90, 180, 270 };
+		elm_win_wm_rotation_available_rotations_set(win, &rots, 4);
+	} else {
+		_E("win rotation no supported");
+	}
+}
+#endif
 
 int X_make_syspopup(bundle *b, Display *dpy, Window xwin, void *win,
 		    int (*rotate_func) (Display*, Window, syspopup*),
@@ -334,13 +355,15 @@ int X_make_syspopup(bundle *b, Display *dpy, Window xwin, void *win,
 	__X_syspopup_change_xwin_type(dpy, xwin);
 	utilx_set_system_notification_level(dpy, xwin, info->prio);
 
-	utilx_grab_key(dpy, xwin, KEY_END, TOP_POSITION_GRAB);
-
 	if (info->focus == 1) {
 		__X_syspopup_disable_focus (dpy, xwin);
 	}
 
+#ifdef ROTATE_USING_X_CLIENT
 	rotate_func(dpy, xwin, sp);
+#else
+	__efl_rotation_set((Evas_Object* )win,(Ecore_X_Window)xwin);
+#endif
 
 	if (is_unviewable == 1) {
 		XMapWindow(dpy, xwin);
@@ -370,7 +393,6 @@ int X_syspopup_reset(bundle *b)
 	const char *popup_name;
 	syspopup_info_t *info;
 	syspopup *sp = NULL;
-	int (*rotate_func) (Display *, Window, syspopup *);
 
 	popup_name = _syspopup_get_name_from_bundle(b);
 	if (popup_name == NULL)
@@ -392,19 +414,30 @@ int X_syspopup_reset(bundle *b)
 			free(sp->dupped_bundle);
 		sp->dupped_bundle = bundle_dup(b);
 
-		d = XOpenDisplay(NULL);
-		win = (Window) sp->internal_data;
-		utilx_set_system_notification_level(d, win, info->prio);
+		do {
+			d = XOpenDisplay(NULL);
+			win = (Window) sp->internal_data;
+			if((!d) || (!win)) {
+				_E("X open is null");
+				break;
+			}
+			utilx_set_system_notification_level(d, win, info->prio);
 
-		if (info->focus == 1) {
-			__X_syspopup_disable_focus (d, win);
-		}
-		rotate_func = sp->rotate_cb;
-		rotate_func(d, win, sp);
+			if (info->focus == 1) {
+				__X_syspopup_disable_focus (d, win);
+			}
 
-		XMapWindow(d, win);
-		/*XMapRaised(d,win);*/
-		XCloseDisplay(d);
+#ifdef ROTATE_USING_X_CLIENT
+			int (*rotate_func) (Display *, Window, syspopup *);
+			rotate_func = sp->rotate_cb;
+			rotate_func(d, win, sp);
+#else
+			__efl_rotation_set((Evas_Object *)sp->win, (Ecore_X_Window)win);
+#endif
+			XMapWindow(d, win);
+			/*XMapRaised(d,win);*/
+			XCloseDisplay(d);
+		} while (0);
 
 		_syspopup_info_free(info);
 	}
@@ -422,5 +455,36 @@ API int syspopup_has_popup(bundle *b)
 		return 1;
 	else
 		return 0;
+}
+
+API int syspopup_reset_timeout(bundle *b, unsigned int time)
+{
+	const char *popup_name;
+	syspopup_info_t *info;
+	syspopup *sp = NULL;
+	int ret;
+
+	popup_name = _syspopup_get_name_from_bundle(b);
+	if (popup_name == NULL) {
+		_E("popup_name is null");
+		return -1;
+	}
+
+	sp = _syspopup_find(popup_name);
+	if (!sp) {
+		_E("find syspopup error");
+		return -1;
+	} else {
+		info = _syspopup_info_get(popup_name);
+		if (info == NULL) {
+			_E("get syspopup info error");
+			return -1;
+		}
+		info->timeout = time;
+		ret = _syspopup_reset_timeout(sp, info);
+		_syspopup_info_free(info);
+	}
+
+	return ret;
 }
 

@@ -25,36 +25,37 @@
 
  *
  * @ingroup   SLP_PG
- * @defgroup   SYSPOPUP Library for System Popup 
+ * @defgroup   SYSPOPUP System Popup
 
 @par SYSPOPUP Programming Guide
 
 <h1 class="pg"> Introduction</h1>
-<h2 class="pg"> Purpose of this document</h2>
+SYSPOPPUP is designed to create popups for system events like low battery, low memory, incoming call etc. Sys-popup (System Popup) Library provides API's for creating system popup applications and launching/destroying the system popup's.
+<h1 class="pg"> Scope</h1>
 The purpose of this document is to describe how applications can use System Popup Library APIs.\n
 This document gives only programming guidelines to system popup application engineers.
+The scope of this document is limited to System Popup API usage.
 
-<h2 class="pg"> Scope</h2>
-The scope of this document is limited to Samsung platform System Popup API usage.
+<h1 class="pg"> Syspopup Features</h1>
+Syspopup exposes two kinds of API's.
+1. Create system popup application.\n
+2. Launch System popup application.
 
-<h1 class="pg"> Architecture</h1>
-<h2 class="pg"> Architecture overview</h2>
+<h1 class="pg"> Syspopup Architecture</h1>
+\image html syspopup_diag.png "Picture 1. Syspopup Process View"
+\image rtf syspopup_diag.png "Picture 1. Syspopup Process View"
 
-<h2 class="pg"> SLP Features</h2>
+Whenever system daemon receives system event for which popup is to be created, it calls syspopup launch API with the required popup name (lowbatt, lowmem etc). Syspopup library finds the appropriate syspopup application to be launched based on the popup name. It then calls the AUL API for launching the syspoup application.
+The syspopup application calls syspopup's create API for creating the systempopup. Picture 1 above shows the process view of syspopup.
 
-<h1 class="pg"> SYSPOPUP API descriptions</h1>
-<b> SEE API manual </b>
-
-<h1 class="pg"> SYSPOPUP features with sample code</h1>
-<h2 class="pg"> ... </h2>
-
-@code
-@endcode
-
-@code
-*/
-
-/**
+<h1 class="pg">API list and description</h1>
+<ul>
+        <li>syspopup_create() : Creates System Popup</li>
+        <li>syspopup_reset() : Reset the created system popup properties</li>
+        <li>syspopup_has_popup() : Checks system popup is created and is running</li>
+	<li>syspopup_launch() : Launches system popup application</li>
+	<li>syspopup_destroy_all() : Destroy all the system popups</li>
+</ul>
 @}
 */
 
