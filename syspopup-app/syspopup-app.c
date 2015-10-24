@@ -20,30 +20,34 @@
  *
  */
 
-#include <tizen.h>
-#include <dlog.h>
+
+#include <stdio.h>
+#include <appcore-efl.h>
+#include <Ecore_X.h>
+#include <bundle_internal.h>
+
 #include "syspopup.h"
 #include "syspopup-app.h"
 
-typedef struct appdata {
-	Evas_Object *win;
-	Evas_Object *conform;
-	Evas_Object *label;
-	Evas_Object *popup;
-	bundle *b;
-	char title[TITLE_BUF_LEN];
-	char content[CONTENT_BUF_LEN];
-} appdata_s;
+#include <time.h>
+
+#include <dlog.h>
+
+#undef LOG_TAG
+#define LOG_TAG "SYSPOPUP-APP"
+
+#define _E(fmt, arg...) LOGE(fmt,##arg)
+#define _D(fmt, arg...) LOGD(fmt,##arg)
 
 int myterm(bundle *b, void *data)
 {
-	dlog_print(DLOG_DEBUG, LOG_TAG, "myterm called");
+	_D("myterm called");
 	return 0;
 }
 
 int mytimeout(bundle *b, void* data)
 {
-	dlog_print(DLOG_DEBUG, LOG_TAG, "mytimeout called");
+	_D("mytimeout called");
 	return 0;
 }
 
@@ -52,212 +56,191 @@ syspopup_handler handler = {
 	.def_timeout_fn = mytimeout
 };
 
-static bool _app_control_extra_data_cb(app_control_h app_control, const char *key, void *user_data)
+static void __win_del(void *data, Evas_Object * obj, void *event)
 {
-	int ret;
-	char *value;
-	appdata_s *ad = user_data;
+	_D("__win_del called");
+	elm_exit();
+}
 
-	ret = app_control_get_extra_data(app_control, key, &value);
-	if (ret != APP_CONTROL_ERROR_NONE)
-	{
-		dlog_print(DLOG_ERROR, LOG_TAG, "app_control_get_extra_data() is failed. err = %d", ret);
+static Evas_Object *__create_win(const char *name)
+{
+	Evas_Object *eo;
+	int w;
+	int h;
+
+	eo = elm_win_add(NULL, name, ELM_WIN_DIALOG_BASIC);
+	if (eo) {
+		elm_win_title_set(eo, name);
+		elm_win_borderless_set(eo, EINA_TRUE);
+
+		elm_win_alpha_set(eo, EINA_TRUE);
+
+		evas_object_smart_callback_add(eo, "delete,request",
+					       __win_del, NULL);
+		ecore_x_window_size_get(ecore_x_window_root_first_get(),
+					&w, &h);
+		evas_object_resize(eo, w, h);
 	}
 
-	if (bundle_add(ad->b, key, value) != BUNDLE_ERROR_NONE) {
-		free(value);
-		return APP_CONTROL_ERROR_INVALID_PARAMETER;
-	}
-
-	free(value);
-
-	return true;
+	return eo;
 }
 
-static void win_delete_request_cb(void *data , Evas_Object *obj , void *event_info)
+static int __app_create(void *data)
 {
-	ui_app_exit();
+	struct appdata *ad = data;
+	Evas_Object *win;
+	int r;
+
+	_D("__app_create called");
+
+	/* create window */
+	win = __create_win(PACKAGE);
+	if (win == NULL)
+		return -1;
+	ad->win = win;
+	/* evas_object_show(win);*/
+
+	/* init internationalization */
+	r = appcore_set_i18n(PACKAGE, LOCALEDIR);
+	if(r)
+		return -1;
+
+	/* appcore_set_rotation_cb(rotate, ad);*/
+
+	appcore_measure_start();
+	return 0;
 }
 
-static void win_back_cb(void *data, Evas_Object *obj, void *event_info)
+static int __app_terminate(void *data)
 {
-	appdata_s *ad = data;
-	/*  Let window go to hide state. */
-	elm_win_lower(ad->win);
+	struct appdata *ad = data;
+
+	_D("__app_terminate called");
+
+	if (ad->win)
+		evas_object_del(ad->win);
+
+	return 0;
 }
 
-static void response_cb(void *data, Evas_Object * obj, void *event_info)
+static int __app_pause(void *data)
 {
-	dlog_print(DLOG_DEBUG, LOG_TAG, "response_cb called");
+	struct appdata *ad = data;
+
+	_D("__app_pause called");
+
+	return 0;
+}
+
+static int __app_resume(void *data)
+{
+	struct appdata *ad = data;
+
+	_D("__app_resume called");
+
+	return 0;
+}
+
+static void __prt_recvd_bundle(const char *key, const char *value, void *d)
+{
+	_D("recvd - key: %s, value: %s\n", key, value);
+}
+
+static void __response_cb(void *data, Evas_Object * obj, void *event_info)
+{
+	_D("__response_cb called");
 
 	if ((int)event_info != 5)
 		evas_object_del(obj);
 	elm_exit();
 }
 
-static void block_clicked_cb(void *data, Evas_Object *obj, void *event_info)
+static void _block_clicked_cb(void *data, Evas_Object *obj, void *event_info)
 {
-	dlog_print(DLOG_DEBUG, LOG_TAG, "block_clicked_cb called");
+	_D("_block_clicked_cb called");
 	evas_object_del(obj);
 }
 
-static void create_base_gui(appdata_s *ad) {
-
-	int w;
-	int h;
-
-	ad->win = elm_win_add(NULL, PACKAGE, ELM_WIN_DIALOG_BASIC);
-	if (ad->win) {
-		elm_win_title_set(ad->win, PACKAGE);
-		elm_win_borderless_set(ad->win, EINA_TRUE);
-		elm_win_alpha_set(ad->win, EINA_TRUE);
-		ecore_x_window_size_get(ecore_x_window_root_first_get(), &w, &h);
-		evas_object_resize(ad->win, w, h);
-	}
-
-	elm_win_autodel_set(ad->win, EINA_TRUE);
-	evas_object_smart_callback_add(ad->win, "delete,request", win_delete_request_cb, NULL);
-
-}
-
-static bool app_create(void *data)
+static int __app_reset(bundle *b, void *data)
 {
-	appdata_s *ad = data;
-
-	create_base_gui(ad);
-
-	return true;
-}
-
-static void app_control(app_control_h app_control, void *data)
-{
-	/*  Handle the launch request. */
-	appdata_s *ad = data;
-
+	struct appdata *ad = data;
 	Evas_Object *popup;
 	const char *val;
 	int ret = 0;
 
-	if(ad->b == NULL)
-		ad->b = bundle_create();
+	_D("__app_reset called");
 
-	ret = app_control_foreach_extra_data(app_control, _app_control_extra_data_cb, data);
-	if (ret != APP_CONTROL_ERROR_NONE)
-		dlog_print(DLOG_ERROR, LOG_TAG, "app_control_foreach_extra_data() is failed. err = %d", ret);
+	ad->b = bundle_dup(b);
 
-	if (syspopup_has_popup(ad->b)) {
-		syspopup_reset(ad->b);
+	bundle_iterate(b, __prt_recvd_bundle, NULL);
+
+	if (syspopup_has_popup(b)) {
+		syspopup_reset(b);
 	} else {
 		popup = elm_popup_add(ad->win);
 		if (popup != NULL) {
-			ret = syspopup_create(ad->b, &handler, ad->win, ad);
+			ret = syspopup_create(b, &handler, ad->win, ad);
 			evas_object_show(ad->win);
 
 			if (ret == 0) {
-				val = bundle_get_val(ad->b, "_SYSPOPUP_TITLE_");
+				val = bundle_get_val(b, "_SYSPOPUP_TITLE_");
 				if (val) {
 					snprintf(ad->title, TITLE_BUF_LEN, "%s",
-							val);
+						 val);
 				} else {
 					snprintf(ad->title, TITLE_BUF_LEN, "%s",
-							"Unknown Title");
+						 "Unknown Title");
 				}
 
-				val = bundle_get_val(ad->b, "_SYSPOPUP_CONTENT_");
+				val = bundle_get_val(b, "_SYSPOPUP_CONTENT_");
 				if (val) {
 					snprintf(ad->content, CONTENT_BUF_LEN,
-							"%s", val);
+						 "%s", val);
 				} else {
 					snprintf(ad->content, CONTENT_BUF_LEN,
-							"%s", "Unknown Content");
+						 "%s", "Unknown Content");
 				}
 
 				elm_object_style_set(popup, "char_wrap_style");
 				evas_object_size_hint_weight_set(popup,
-						EVAS_HINT_EXPAND,
-						EVAS_HINT_EXPAND);
-				evas_object_smart_callback_add(popup, "block,clicked", block_clicked_cb, NULL);
+							EVAS_HINT_EXPAND,
+							EVAS_HINT_EXPAND);
+				evas_object_smart_callback_add(popup, "block,clicked", _block_clicked_cb, NULL);
 				elm_object_part_text_set(popup, "title,text", ad->title);
 				elm_object_text_set(popup, ad->content);
 				evas_object_smart_callback_add(popup,
-						"response",
-						response_cb,
-						NULL);
+							       "response",
+							       __response_cb,
+							       NULL);
 
 				evas_object_show(popup);
 			}
 		}
 	}
-	bundle_free(ad->b);
-}
 
-static void app_pause(void *data)
-{
-	/*  Take necessary actions when application becomes invisible. */
-}
-
-static void app_resume(void *data)
-{
-	/*  Take necessary actions when application becomes visible. */
-}
-
-static void app_terminate(void *data)
-{
-	/*  Release all resources. */
-}
-
-static void ui_app_lang_changed(app_event_info_h event_info, void *user_data)
-{
-	/* APP_EVENT_LANGUAGE_CHANGED*/
-	return;
-}
-
-static void ui_app_orient_changed(app_event_info_h event_info, void *user_data)
-{
-	/* APP_EVENT_DEVICE_ORIENTATION_CHANGED*/
-	return;
-}
-
-static void ui_app_region_changed(app_event_info_h event_info, void *user_data)
-{
-	/* APP_EVENT_REGION_FORMAT_CHANGED*/
-}
-
-static void ui_app_low_battery(app_event_info_h event_info, void *user_data)
-{
-	/* APP_EVENT_LOW_BATTERY*/
-}
-
-static void ui_app_low_memory(app_event_info_h event_info, void *user_data)
-{
-	/* APP_EVENT_LOW_MEMORY*/
+	return 0;
 }
 
 int main(int argc, char *argv[])
 {
-	appdata_s ad = {0,};
-	int ret = 0;
+	struct appdata ad;
+	struct appcore_ops ops = {
+		.create = __app_create,
+		.terminate = __app_terminate,
+		.pause = __app_pause,
+		.resume = __app_resume,
+		.reset = __app_reset,
+	};
 
-	ui_app_lifecycle_callback_s event_callback = {0,};
-	app_event_handler_h handlers[5] = {NULL, };
+	//unsetenv("ELM_SCALE");
 
-	event_callback.create = app_create;
-	event_callback.terminate = app_terminate;
-	event_callback.pause = app_pause;
-	event_callback.resume = app_resume;
-	event_callback.app_control = app_control;
+	/* appcore measure time example */
+	_D("from AUL to %s(): %d msec\n", __func__,
+	       appcore_measure_time_from("APP_START_TIME"));
 
-	ui_app_add_event_handler(&handlers[APP_EVENT_LOW_BATTERY], APP_EVENT_LOW_BATTERY, ui_app_low_battery, &ad);
-	ui_app_add_event_handler(&handlers[APP_EVENT_LOW_MEMORY], APP_EVENT_LOW_MEMORY, ui_app_low_memory, &ad);
-	ui_app_add_event_handler(&handlers[APP_EVENT_DEVICE_ORIENTATION_CHANGED], APP_EVENT_DEVICE_ORIENTATION_CHANGED, ui_app_orient_changed, &ad);
-	ui_app_add_event_handler(&handlers[APP_EVENT_LANGUAGE_CHANGED], APP_EVENT_LANGUAGE_CHANGED, ui_app_lang_changed, &ad);
-	ui_app_add_event_handler(&handlers[APP_EVENT_REGION_FORMAT_CHANGED], APP_EVENT_REGION_FORMAT_CHANGED, ui_app_region_changed, &ad);
+	memset(&ad, 0x0, sizeof(struct appdata));
+	ops.data = &ad;
 
-	ret = ui_app_main(argc, argv, &event_callback, &ad);
-	if (ret != APP_ERROR_NONE) {
-		dlog_print(DLOG_ERROR, LOG_TAG, "app_main() is failed. err = %d", ret);
-	}
-
-	return ret;
+	return appcore_efl_main(PACKAGE, &argc, &argv, &ops);
 }
 

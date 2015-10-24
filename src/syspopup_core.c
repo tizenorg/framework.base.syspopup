@@ -24,17 +24,16 @@
 #include <glib.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dbus/dbus.h>
-#include <dbus/dbus-glib-lowlevel.h>
 #include "syspopup_core.h"
 #include "simple_util.h"
+#include <gio/gio.h>
+#include <bundle_internal.h>
 
 #define SYSPOPUP_NAME "_INTERNAL_SYSPOPUP_NAME_"
 
 static syspopup *syspopup_head = NULL;
 
 static int initialized = 0;
-static DBusConnection *bus;
 static int noti_fd = -1;
 static int sp_id = 0;
 
@@ -120,41 +119,28 @@ void _syspopup_del(int id)
 	}
 }
 
-
-static DBusHandlerResult
-__sys_popup_dbus_signal_filter(DBusConnection *conn, DBusMessage *message,
-				     void *user_data)
+void __sys_popup_dbus_signal_filter(GDBusConnection *conn,
+		const gchar *sender_name,
+		const gchar *object_path,
+		const gchar *interface_name,
+		const gchar *signal_name,
+		GVariant *parameters,
+		gpointer user_data)
 {
 	const char *sender;
 	const char *interface;
 	int dead_pid;
-
-	DBusError error;
-	dbus_error_init(&error);
-
-	interface = dbus_message_get_interface(message);
-	if (interface == NULL) {
-		_E("reject by security issue - no interface\n");
-		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-	}
-
-	if (dbus_message_is_signal(message, interface,
-				   SYSPOPUP_DBUS_SP_TERM_SIGNAL)) {
+	if(!strcmp(signal_name, SYSPOPUP_DBUS_SP_TERM_SIGNAL)) {
 		if (_term_handler)
 			_term_handler(NULL);
 
 		_D("term handler has been called");
 	}
-
-	return DBUS_HANDLER_RESULT_HANDLED;
 }
-
-
 
 int _syspopup_init(void (*term_handler) (void *),
 		   gboolean(*timeout_handler) (void *))
 {
-	DBusError error;
 	char rule[MAX_LOCAL_BUFSZ];
 
 	if (initialized)
@@ -163,30 +149,31 @@ int _syspopup_init(void (*term_handler) (void *),
 	_term_handler = term_handler;
 	_timeout_handler = timeout_handler;
 
-	dbus_error_init(&error);
-	bus = dbus_bus_get_private(DBUS_BUS_SYSTEM, &error);
-	if (!bus) {
-		_E("Failed to connect to the D-BUS daemon: %s", error.message);
-		dbus_error_free(&error);
+	GDBusConnection *conn = NULL;
+	GError *err = NULL;
+	g_type_init();
+
+	conn = g_bus_get_sync(G_BUS_TYPE_SYSTEM,NULL,&err);
+
+	if (err) {
+		_E("gdbus connection error (%s)", err->message);
+		g_error_free(err);
 		return -1;
 	}
-	dbus_connection_setup_with_g_main(bus, NULL);
-
-	snprintf(rule, MAX_LOCAL_BUFSZ,
-		 "path='%s',type='signal',interface='%s'", SYSPOPUP_DBUS_PATH,
-		 SYSPOPUP_DBUS_SIGNAL_INTERFACE);
-	/* listening to messages */
-	dbus_bus_add_match(bus, rule, &error);
-	if (dbus_error_is_set(&error)) {
-		_E("Fail to rule set: %s", error.message);
-		dbus_error_free(&error);
+	if (NULL == conn) {
+		_E("gdbus connection is not set, even gdbus error isn't raised");
 		return -1;
 	}
 
-	if (dbus_connection_add_filter(bus, 
-		__sys_popup_dbus_signal_filter, NULL, NULL) == FALSE)
-		return -1;
+	/* Add a filter for signal */
+	guint conn_subsc_id = g_dbus_connection_signal_subscribe(conn,
+						NULL, SYSPOPUP_DBUS_SIGNAL_INTERFACE,
+						NULL, NULL, NULL, G_DBUS_SIGNAL_FLAGS_NONE,
+						__sys_popup_dbus_signal_filter, NULL, NULL);
 
+	if (conn_subsc_id == 0) {
+		_E("Error in subscribing to the signal");
+	}
 	_D("syspopup signal initialized");
 
 	initialized = 1;

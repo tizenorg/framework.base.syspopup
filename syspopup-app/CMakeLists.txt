@@ -22,7 +22,7 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR})
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/syspopup)
 
 INCLUDE(FindPkgConfig)
-pkg_check_modules(syspopup_app_pkgs REQUIRED appcore-efl capi-appfw-application)
+pkg_check_modules(syspopup_app_pkgs REQUIRED appcore-efl)
 
 FOREACH(flag ${syspopup_app_pkgs_CFLAGS})
 	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")

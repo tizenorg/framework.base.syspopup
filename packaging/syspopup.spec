@@ -1,7 +1,7 @@
 
 Name:       syspopup
 Summary:    syspopup package
-Version:    0.0.134
+Version:    0.0.135
 Release:    1
 Group:      System/Libraries
 License:    Apache-2.0
@@ -14,12 +14,13 @@ BuildRequires:  pkgconfig(sqlite3)
 BuildRequires:  pkgconfig(bundle)
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(utilX)
-BuildRequires:  pkgconfig(dbus-glib-1)
 BuildRequires:  pkgconfig(x11)
 BuildRequires:  pkgconfig(aul)
 BuildRequires:  pkgconfig(evas)
 BuildRequires:  pkgconfig(appcore-efl)
-BuildRequires:  pkgconfig(capi-appfw-application)
+BuildRequires:	pkgconfig(vasum)
+BuildRequires:	pkgconfig(appsvc)
+BuildRequires:	pkgconfig(capi-system-info)
 
 %description
 syspopup package for popup
@@ -65,7 +66,13 @@ org.tizen.syspopup-app test app package
 %if "%{?tizen_profile_name}" == "wearable"
 export CFLAGS="$CFLAGS –D_WEARABLE"
 %else
+%if "%{?tizen_profile_name}" == "mobile"
 export CFLAGS="$CFLAGS -D_MOBILE"
+%else
+%if "%{?tizen_profile_name}" == "tv"
+export CFLAGS="$CFLAGS -D_TV"
+%endif
+%endif
 %endif
 
 %if 0%{?sec_build_binary_debug_enable}
@@ -75,7 +82,7 @@ export FFLAGS="$FFLAGS -DTIZEN_DEBUG_ENABLE"
 %endif
 export CFLAGS="$CFLAGS -Wall -Werror -Wno-unused-function"
 CFLAGS=${_cflags} cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DEXTRA_CFLAGS=-fPIC \
-	-D_WEARABLE:BOOL=${_WEARABLE} -D_MOBILE:BOOL=${_MOBILE} \
+	-D_WEARABLE:BOOL=${_WEARABLE} -D_MOBILE:BOOL=${_MOBILE} -D_TV:BOOL=${_TV} \
 	.
 
 make %{?jobs:-j%jobs}

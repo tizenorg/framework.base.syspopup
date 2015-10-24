@@ -89,7 +89,6 @@ API int syspopup_create(bundle *b, syspopup_handler *handler,
 	syspopup *sp = NULL;
 	int id;
 	XWindowAttributes attr;
-	int is_unviewable = 0;
 
 	popup_name = _syspopup_get_name_from_bundle(b);
 	if (popup_name == NULL || handler == NULL) {

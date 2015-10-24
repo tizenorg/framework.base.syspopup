@@ -24,4 +24,3 @@ INSERT OR REPLACE INTO "syspopup_info" VALUES(NULL,"system-syspopup",           
 INSERT OR REPLACE INTO "syspopup_info" VALUES(NULL,"safetyvolume-syspopup",     2,1,-1,0,0,"org.tizen.safetyvolume-syspopup");
 INSERT OR REPLACE INTO "syspopup_info" VALUES(NULL,"crash-popup",               1,0,-1,0,0,"org.tizen.crash-popup");
 INSERT OR REPLACE INTO "syspopup_info" VALUES(NULL,"wc-syspopup",               0,0,-1,0,0,"net.wc-syspopup");
-

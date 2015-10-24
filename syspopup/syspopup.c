@@ -199,8 +199,6 @@ int X_syspopup_rotation_get(Display *dpy, Window win)
 	int rotation = -1;
 	int ret;
 
-	int angles[2];
-
 	Atom atom_active_win;
 	Atom atom_win_rotate_angle;
 
@@ -293,7 +291,7 @@ static void __efl_rotation_set(Evas_Object* win, Ecore_X_Window xwin)
 	ecore_x_icccm_name_class_set(xwin, WIN_PROP_NAME, WIN_PROP_NAME);
 	if (elm_win_wm_rotation_supported_get(win)) {
 		int rots[4] = { 0, 90, 180, 270 };
-		elm_win_wm_rotation_available_rotations_set(win, &rots, 4);
+		elm_win_wm_rotation_available_rotations_set(win, (const int*)(&rots), 4);
 	} else {
 		_E("win rotation no supported");
 	}
